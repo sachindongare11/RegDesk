@@ -1,0 +1,88 @@
+# Default values for the regdesk chart (Phase 2: local kind cluster).
+#
+# Platform DNS names below (qdrant, rabbitmq, ollama) are the Kubernetes
+# Service names created by deploy/platform/ -- see that directory's README
+# for the exact install commands. All three services share the namespace
+# this chart is installed into, so plain Service names resolve correctly
+# without a fully-qualified domain.
+
+# -- Images are built locally and loaded into kind with `kind load
+# docker-image` (see scripts/kind_load_images.sh); pullPolicy Never makes
+# that contract explicit -- a mistyped tag fails fast instead of silently
+# trying (and failing) to pull from Docker Hub.
+mcpTools:
+  image:
+    repository: regdesk/mcp-tools
+    tag: local
+    pullPolicy: Never
+  replicas: 1
+  port: 8000
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  env:
+    MCP_TOOLS_QDRANT_URL: http://qdrant:6333
+    MCP_TOOLS_OLLAMA_BASE_URL: http://ollama:11434
+
+agentApi:
+  image:
+    repository: regdesk/agent-api
+    tag: local
+    pullPolicy: Never
+  replicas: 1
+  port: 8080
+  nodePort: 30080 # matches deploy/kind-cluster.yaml's extraPortMappings
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  env:
+    AGENT_API_MCP_TOOLS_URL: http://mcp-tools:8000/mcp
+    AGENT_API_OLLAMA_BASE_URL: http://ollama:11434
+  hpa:
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    minAvailable: 1
+
+ingestWorker:
+  image:
+    repository: regdesk/ingest-worker
+    tag: local
+    pullPolicy: Never
+  # No `replicas` field: KEDA's ScaledObject owns this Deployment's replica
+  # count once installed (idleReplicaCount 0). The Deployment template
+  # still sets replicas: 0 as its own starting point so `helm install`
+  # alone (before KEDA is in place) doesn't leave a worker wedged at 1.
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: 1000m, memory: 768Mi }
+  env:
+    INGEST_WORKER_QDRANT_URL: http://qdrant:6333
+    INGEST_WORKER_OLLAMA_BASE_URL: http://ollama:11434
+    INGEST_WORKER_CORPUS_DIR: /data/regulations
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    # Name of the Secret the RabbitMQ Cluster Operator creates for the
+    # RabbitmqCluster named "rabbitmq" (see deploy/platform/README.md).
+    credentialsSecretName: rabbitmq-default-user
+  scaledObject:
+    queueName: regdesk.ingest
+    queueLength: 5 # target messages-per-replica; queue depth 15 -> ~3 replicas
+    minReplicaCount: 0
+    maxReplicaCount: 5
+    pollingIntervalSeconds: 5
+    cooldownPeriodSeconds: 30
+
+# Shared security defaults applied to every container (see templates/_helpers.tpl).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]

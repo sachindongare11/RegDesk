@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingest-worker
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 4 }}
+spec:
+  # replicas: 0 is this Deployment's own starting point only. Once KEDA's
+  # ScaledObject (templates/ingest-worker/scaledobject.yaml) exists it owns
+  # this field, same relationship as the HPA has with agent-api above.
+  replicas: 0
+  selector:
+    matchLabels:
+      {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        # regdesk.labels (not just selectorLabels) so this pod is actually
+        # matched by the shared namespace-wide NetworkPolicies
+        # (networkpolicy-default-deny.yaml, networkpolicy-allow-dns.yaml),
+        # which select on app.kubernetes.io/part-of: regdesk.
+        {{- include "regdesk.labels" . | nindent 8 }}
+        {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 8 }}
+    spec:
+      serviceAccountName: ingest-worker
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: ingest-worker
+          image: "{{ .Values.ingestWorker.image.repository }}:{{ .Values.ingestWorker.image.tag }}"
+          imagePullPolicy: {{ .Values.ingestWorker.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: ingest-worker-config
+          env:
+            # The RabbitMQ Cluster Operator creates this Secret with
+            # discrete `username`/`password` keys (not a ready-made URL);
+            # config.py's model_validator composes rabbitmq_url from these
+            # plus INGEST_WORKER_RABBITMQ_HOST/_PORT from the ConfigMap.
+            - name: INGEST_WORKER_RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.ingestWorker.rabbitmq.credentialsSecretName }}
+                  key: username
+            - name: INGEST_WORKER_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.ingestWorker.rabbitmq.credentialsSecretName }}
+                  key: password
+          volumeMounts:
+            {{- include "regdesk.tmpVolumeMount" . | nindent 12 }}
+            - name: corpus
+              mountPath: /data/regulations
+              readOnly: true
+          resources:
+            {{- toYaml .Values.ingestWorker.resources | nindent 12 }}
+      volumes:
+        {{- include "regdesk.tmpVolume" . | nindent 8 }}
+        - name: corpus
+          configMap:
+            name: ingest-worker-corpus

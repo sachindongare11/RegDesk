@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-tools
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "mcp-tools" | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "regdesk.selectorLabels" "mcp-tools" | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only agent-api calls mcp-tools; ingest-worker talks to Qdrant/Ollama
+    # directly (see its own NetworkPolicy), not through mcp-tools.
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "regdesk.selectorLabels" "agent-api" | nindent 14 }}
+      ports:
+        - port: {{ .Values.mcpTools.port }}
+  egress:
+    # Qdrant and Ollama (see deploy/platform/) are deployed in-namespace but
+    # owned by a different chart, so these match any same-namespace pod
+    # rather than labels this chart doesn't control.
+    - to:
+        - podSelector: {}
+      ports:
+        - port: 6333
+        - port: 11434

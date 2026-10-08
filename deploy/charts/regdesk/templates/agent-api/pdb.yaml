@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agent-api
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "agent-api" | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.agentApi.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "regdesk.selectorLabels" "agent-api" | nindent 6 }}

@@ -1,0 +1,45 @@
+SAMPLE CORPUS FILE -- NOT THE OFFICIAL LEGAL TEXT
+This file is a short, illustrative excerpt used to exercise the ingest, search and
+citation pipeline on a laptop without downloading the full regulation. Replace it
+with the official consolidated text from the source_url in sources.json before
+using RegDesk for anything beyond local development. Article numbers below match
+the real Regulation (EU) 2024/1689 structure so citations resolve sensibly.
+
+ARTICLE 5: Prohibited artificial intelligence practices
+The placing on the market, putting into service or use of certain AI systems is
+prohibited, including systems that deploy subliminal or manipulative techniques
+to materially distort behaviour in a way that causes significant harm, systems
+that exploit vulnerabilities of a specific group of persons, and systems used
+for social scoring by public authorities that leads to detrimental or
+unfavourable treatment in unrelated contexts.
+
+ARTICLE 6: Classification rules for high-risk AI systems
+An AI system is classified as high-risk where it is intended to be used as a
+safety component of a product, or is itself a product, covered by Union
+harmonisation legislation and is required to undergo a third-party conformity
+assessment. An AI system is also high-risk where it falls within one of the use
+cases listed in Annex III, such as credit scoring, unless it does not pose a
+significant risk of harm to health, safety or fundamental rights.
+
+ARTICLE 9: Risk management system
+Providers of high-risk AI systems shall establish, implement, document and
+maintain a risk management system as a continuous, iterative process run
+throughout the entire lifecycle of a high-risk AI system. The risk management
+system shall identify and analyse known and reasonably foreseeable risks, and
+shall adopt suitable risk management measures to address risks that cannot be
+eliminated, including testing to identify the most appropriate measures.
+
+ARTICLE 50: Transparency obligations for providers and deployers of certain AI systems
+Providers shall ensure that AI systems intended to interact directly with
+natural persons are designed so that the persons concerned are informed that
+they are interacting with an AI system, unless this is obvious from the
+circumstances. Deployers of an AI system that generates or manipulates text,
+audio, image or video content constituting a deep fake shall disclose that the
+content has been artificially generated or manipulated.
+
+ARTICLE 72: Post-market monitoring by providers
+Providers shall establish and document a post-market monitoring system in a
+manner proportionate to the nature of the AI technologies and the risks of the
+high-risk AI system. The post-market monitoring system shall actively and
+systematically collect, document and analyse relevant data on the performance
+of the high-risk AI system throughout its lifetime.

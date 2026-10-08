@@ -1,0 +1,28 @@
+# Every one of our pods resolves plain Service names (qdrant, rabbitmq,
+# ollama, mcp-tools) via cluster DNS, so this allow has to exist for the
+# default-deny in networkpolicy-default-deny.yaml to not break everything.
+# Scoped to kube-system by namespace label (kubernetes.io/metadata.name is
+# auto-applied by Kubernetes to every namespace since 1.21) rather than to
+# CoreDNS's pod labels, which aren't this chart's to assume.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: regdesk-allow-dns-egress
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: regdesk
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

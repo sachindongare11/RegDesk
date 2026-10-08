@@ -1,0 +1,23 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ingest-worker
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: ingest-worker
+  pollingInterval: {{ .Values.ingestWorker.scaledObject.pollingIntervalSeconds }}
+  cooldownPeriod: {{ .Values.ingestWorker.scaledObject.cooldownPeriodSeconds }}
+  minReplicaCount: {{ .Values.ingestWorker.scaledObject.minReplicaCount }}
+  maxReplicaCount: {{ .Values.ingestWorker.scaledObject.maxReplicaCount }}
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: {{ .Values.ingestWorker.scaledObject.queueName | quote }}
+        mode: QueueLength
+        value: {{ .Values.ingestWorker.scaledObject.queueLength | quote }}
+        protocol: amqp
+      authenticationRef:
+        name: ingest-worker-rabbitmq-auth

@@ -1,0 +1,21 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agent-api
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "agent-api" | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agent-api
+  minReplicas: {{ .Values.agentApi.hpa.minReplicas }}
+  maxReplicas: {{ .Values.agentApi.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.agentApi.hpa.targetCPUUtilizationPercentage }}

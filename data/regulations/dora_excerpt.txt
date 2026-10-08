@@ -1,0 +1,50 @@
+SAMPLE CORPUS FILE -- NOT THE OFFICIAL LEGAL TEXT
+This file is a short, illustrative excerpt used to exercise the ingest, search and
+citation pipeline on a laptop without downloading the full regulation. Replace it
+with the official consolidated text from the source_url in sources.json before
+using RegDesk for anything beyond local development. Article numbers below match
+the real Regulation (EU) 2022/2554 structure so citations resolve sensibly.
+
+ARTICLE 5: Governance and organisation
+Financial entities shall have in place an internal governance and control
+framework that ensures an effective and prudent management of ICT risk, in order
+to achieve a high level of digital operational resilience. The management body
+bears ultimate responsibility for managing the financial entity's ICT risk, and
+shall define, approve, oversee and be accountable for the implementation of all
+arrangements related to the ICT risk management framework.
+
+ARTICLE 17: ICT-related incident management process
+Financial entities shall define, establish and implement an ICT-related incident
+management process to detect, manage and notify ICT-related incidents. Financial
+entities shall record all ICT-related incidents and significant cyber threats,
+and shall implement procedures to identify, track, log, categorise and classify
+ICT-related incidents according to their priority, severity and the criticality
+of the services impacted.
+
+ARTICLE 18: Classification of ICT-related incidents and cyber threats
+Financial entities shall classify ICT-related incidents based on criteria
+including: the number and relevance of clients or financial counterparts
+affected, the duration of the incident, the geographical spread, the data
+losses it entails, the criticality of the services affected, and the economic
+impact. An incident is classified as major where it meets thresholds set out in
+regulatory technical standards. Significant cyber threats shall be classified
+based on the criticality of the services at risk.
+
+ARTICLE 19: Reporting of major ICT-related incidents
+Financial entities shall report major ICT-related incidents to the relevant
+competent authority. Reporting is performed through an initial notification, an
+intermediate report once the status of the original incident has changed, and a
+final report when root cause analysis is complete. Initial notification of a
+major ICT-related incident shall be submitted no later than 4 hours from
+classification of the incident as major, and in any case no later than 24 hours
+from when the financial entity became aware of the incident. Financial entities
+shall use the templates provided by the European Supervisory Authorities for
+each notification stage.
+
+ARTICLE 28: General principles for managing ICT third-party risk
+Financial entities shall manage ICT third-party risk as an integral component of
+ICT risk within their ICT risk management framework. Financial entities shall
+adopt and regularly review a strategy on ICT third-party risk, taking into
+account the multi-vendor strategy. The management body shall, on a regular
+basis, review the risks identified in respect of contractual arrangements on the
+use of ICT services supporting critical or important functions.

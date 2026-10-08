@@ -1,0 +1,47 @@
+{{/*
+KEDA's RabbitMQ scaler (used by scaledobject.yaml) wants a single AMQP
+connection URI (amqp://user:pass@host:port/), but the RabbitMQ Cluster
+Operator's generated Secret (.Values.ingestWorker.rabbitmq.credentialsSecretName)
+only exposes discrete `username`/`password` keys -- the same shape mismatch
+config.py's model_validator works around for the app's own connection
+string (see services/ingest-worker/app/config.py).
+
+There's no YAML-only way to concatenate a value from one Secret into
+another at apply time, so this uses Helm's `lookup` to read the
+already-installed operator Secret during `helm install`/`upgrade` (platform
+pieces -- see deploy/platform/README.md -- must be installed first) and
+composes the URI here. `lookup` returns an empty dict under `helm
+template`/`--dry-run` with no live cluster, so this falls back to the
+RabbitMQ image's default guest/guest credentials in that case; that's fine
+for linting/rendering checks, which never actually connect to anything.
+*/}}
+{{- $secret := lookup "v1" "Secret" .Release.Namespace .Values.ingestWorker.rabbitmq.credentialsSecretName }}
+{{- $user := "guest" }}
+{{- $pass := "guest" }}
+{{- if $secret }}
+{{- $user = index $secret.data "username" | b64dec }}
+{{- $pass = index $secret.data "password" | b64dec }}
+{{- end }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ingest-worker-rabbitmq-uri
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 4 }}
+type: Opaque
+stringData:
+  host: "amqp://{{ $user }}:{{ $pass }}@{{ .Values.ingestWorker.rabbitmq.host }}:{{ .Values.ingestWorker.rabbitmq.port }}/"
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: ingest-worker-rabbitmq-auth
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 4 }}
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: ingest-worker-rabbitmq-uri
+      key: host

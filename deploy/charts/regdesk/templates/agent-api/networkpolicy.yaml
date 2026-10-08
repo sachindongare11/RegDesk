@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-api
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "agent-api" | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "regdesk.selectorLabels" "agent-api" | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # No `from:` -- agent-api is reached through the Service's NodePort
+    # (see service.yaml), which arrives at the pod as traffic from the
+    # node/kube-proxy rather than from another pod, so a podSelector-based
+    # allow-list can't name the source. Restricting to the one port it
+    # actually serves is the enforcement this policy can usefully add.
+    - ports:
+        - port: {{ .Values.agentApi.port }}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "regdesk.selectorLabels" "mcp-tools" | nindent 14 }}
+      ports:
+        - port: {{ .Values.mcpTools.port }}
+    - to:
+        # Ollama (see deploy/platform/) is deployed in-namespace but owned
+        # by a different chart, so this matches any same-namespace pod
+        # rather than a label this chart doesn't control.
+        - podSelector: {}
+      ports:
+        - port: 11434

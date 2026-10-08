@@ -1,0 +1,40 @@
+SAMPLE CORPUS FILE -- NOT THE OFFICIAL LEGAL TEXT
+This file is a short, illustrative excerpt used to exercise the ingest, search and
+citation pipeline on a laptop without downloading the full regulation. Replace it
+with the official consolidated text from the source_url in sources.json before
+using RegDesk for anything beyond local development. Section labels below follow
+the real structure of the Central Bank of Ireland Consumer Protection Code so
+citations resolve sensibly.
+
+ARTICLE General-Principles-1: Acting honestly, fairly and professionally
+A regulated entity must act honestly, fairly and professionally in the best
+interests of its customers and the integrity of the market. A regulated entity
+must ensure that in all its dealings with customers it acts with due skill,
+care and diligence in the best interests of its customers.
+
+ARTICLE General-Principles-3: Avoiding conflicts of interest
+A regulated entity must seek to avoid conflicts of interest, and where conflicts
+cannot be avoided, must ensure that customers are fairly treated through
+disclosure, internal rules, or declining to act where a conflict would
+otherwise prejudice the interests of a customer.
+
+ARTICLE Chapter-3-Disclosure: Provision of information
+A regulated entity must ensure that all information it provides to a consumer
+is clear, accurate, up to date, and written in plain, comprehensible language.
+Key information, including charges and the existence of a cooling-off period,
+must be brought to the consumer's attention at the proposal or pre-contractual
+stage, not buried in later documentation.
+
+ARTICLE Chapter-10-Errors: Errors and complaints resolution
+A regulated entity must have in place a written procedure for the proper
+handling of complaints, and must acknowledge a complaint within 5 business
+days, provide a regular update at least every 20 business days, and issue a
+final response within 40 business days of the complaint being made, unless
+both the regulated entity and consumer agree to an extended timeline.
+
+ARTICLE Chapter-4-Knowing-the-Consumer: Knowing the consumer and suitability
+Before offering, recommending, arranging or providing a product or service, a
+regulated entity must gather sufficient information from the consumer to be
+reasonably satisfied that the product or service is suitable for that consumer,
+having regard to their financial needs, objectives, and capacity to absorb
+loss.

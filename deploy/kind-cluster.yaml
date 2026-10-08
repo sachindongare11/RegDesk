@@ -1,0 +1,25 @@
+# kind cluster config for RegDesk Phase 2 (local Kubernetes, no cloud).
+#
+# disableDefaultCNI is the important bit: kind ships with kindnet by
+# default, which does NOT enforce NetworkPolicy resources (it's a flat
+# network, policies are silently accepted but never applied). Phase 2's
+# done-check includes default-deny + explicit-allow NetworkPolicies, so we
+# turn kindnet off and install Calico instead (see scripts/kind_up.sh).
+#
+# podSubnet matches Calico's own default IPAM pool (192.168.0.0/16) so the
+# two don't need any extra CIDR reconciliation.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: regdesk
+networking:
+  disableDefaultCNI: true
+  podSubnet: "192.168.0.0/16"
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Host 18080 (not 8080) -> agent-api's NodePort. 8080 is left free
+      # so the Phase 1 docker-compose stack can keep running side by side
+      # for comparison; `curl localhost:18080/ask` reaches the kind cluster.
+      - containerPort: 30080
+        hostPort: 18080
+        protocol: TCP

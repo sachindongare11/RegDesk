@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-api
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "agent-api" | nindent 4 }}
+spec:
+  # NodePort (not ClusterIP) so the host can reach it without a
+  # port-forward -- deploy/kind-cluster.yaml maps hostPort 18080 to this
+  # NodePort via the control-plane node's extraPortMappings.
+  type: NodePort
+  selector:
+    {{- include "regdesk.selectorLabels" "agent-api" | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.agentApi.port }}
+      targetPort: http
+      nodePort: {{ .Values.agentApi.nodePort }}

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingest-worker-config
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 4 }}
+data:
+  INGEST_WORKER_RABBITMQ_HOST: {{ .Values.ingestWorker.rabbitmq.host | quote }}
+  INGEST_WORKER_RABBITMQ_PORT: {{ .Values.ingestWorker.rabbitmq.port | quote }}
+  INGEST_WORKER_QUEUE_NAME: {{ .Values.ingestWorker.scaledObject.queueName | quote }}
+  {{- range $key, $value := .Values.ingestWorker.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  # FastEmbed's HF cache: see templates/_helpers.tpl's regdesk.tmpVolume.
+  HF_HOME: /tmp/hf-cache

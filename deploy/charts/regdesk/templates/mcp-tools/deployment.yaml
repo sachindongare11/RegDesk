@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-tools
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "mcp-tools" | nindent 4 }}
+spec:
+  replicas: {{ .Values.mcpTools.replicas }}
+  selector:
+    matchLabels:
+      {{- include "regdesk.selectorLabels" "mcp-tools" | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        # regdesk.labels (not just selectorLabels) so this pod is actually
+        # matched by the shared namespace-wide NetworkPolicies
+        # (networkpolicy-default-deny.yaml, networkpolicy-allow-dns.yaml),
+        # which select on app.kubernetes.io/part-of: regdesk.
+        {{- include "regdesk.labels" . | nindent 8 }}
+        {{- include "regdesk.selectorLabels" "mcp-tools" | nindent 8 }}
+    spec:
+      serviceAccountName: mcp-tools
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: mcp-tools
+          image: "{{ .Values.mcpTools.image.repository }}:{{ .Values.mcpTools.image.tag }}"
+          imagePullPolicy: {{ .Values.mcpTools.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.mcpTools.port }}
+          envFrom:
+            - configMapRef:
+                name: mcp-tools-config
+          volumeMounts:
+            {{- include "regdesk.tmpVolumeMount" . | nindent 12 }}
+          # mcp-tools exposes only /healthz (no separate deep-dependency
+          # readiness check), so both probes target it: liveness confirms
+          # the process is responsive, readiness keeps it out of the
+          # Service's endpoints until uvicorn has actually started serving.
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.mcpTools.resources | nindent 12 }}
+      volumes:
+        {{- include "regdesk.tmpVolume" . | nindent 8 }}

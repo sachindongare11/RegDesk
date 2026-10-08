@@ -1,0 +1,24 @@
+# RabbitmqCluster custom resource -- requires the RabbitMQ Cluster Operator
+# (cluster-scoped CRDs + controller) to already be installed; that's a
+# one-time, cluster-wide apply so it lives in scripts/platform_up.sh
+# alongside KEDA's install rather than as a file here.
+#
+# Must be named "rabbitmq": the Operator derives its generated credentials
+# Secret's name from the CR name as "<name>-default-user", and
+# deploy/charts/regdesk/values.yaml's ingestWorker.rabbitmq.credentialsSecretName
+# ("rabbitmq-default-user") and .host ("rabbitmq" -- the Service the
+# Operator creates is also named after the CR) both assume this exact name.
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+  namespace: regdesk
+spec:
+  replicas: 1
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: 1000m, memory: 1Gi }
+  persistence:
+    # Small and on the kind cluster's default local-path StorageClass --
+    # this is throwaway local dev state, not something worth tuning.
+    storage: 1Gi

@@ -1,0 +1,83 @@
+# Ingress allow-lists for the platform dependencies (Qdrant, Ollama, the
+# RabbitMQ Cluster Operator's pods) -- these live here rather than in
+# deploy/charts/regdesk/templates/networkpolicy-default-deny.yaml because
+# that chart's default-deny intentionally does NOT select these pods (see
+# that file's comment): they're installed separately and the chart doesn't
+# own their labels. But "out of scope for the chart's default-deny" still
+# means something has to allow the regdesk workloads in, now that
+# default-deny exists at all -- these do that, directly against each
+# platform pod's own labels, without requiring anything in the chart.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: qdrant-allow-regdesk
+  namespace: regdesk
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: qdrant
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mcp-tools
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingest-worker
+      ports:
+        - port: 6333
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ollama-allow-regdesk
+  namespace: regdesk
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ollama
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mcp-tools
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingest-worker
+        # The one-shot model-pull Job (ollama-pull-models-job.yaml) is also
+        # a client of this Service -- `ollama pull` with OLLAMA_HOST set
+        # talks to it over this same port.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama-pull-models
+      ports:
+        - port: 11434
+---
+# The RabbitMQ Cluster Operator labels its StatefulSet's pods
+# app.kubernetes.io/name: rabbitmq (not the RabbitmqCluster CR's own name),
+# consistently across every RabbitmqCluster it manages.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rabbitmq-allow-regdesk
+  namespace: regdesk
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingest-worker
+      ports:
+        - port: 5672

@@ -1,0 +1,23 @@
+{
+  "_comment": "Maps each local doc_id to its canonical public source. The ingest worker reads this file to attach a citation URL to every chunk it embeds. Replace the sample .txt files with the full official PDFs before using this for anything beyond local development -- see data/README.md.",
+  "documents": [
+    {
+      "doc_id": "dora",
+      "title": "Regulation (EU) 2022/2554 (Digital Operational Resilience Act)",
+      "source_url": "https://eur-lex.europa.eu/eli/reg/2022/2554/oj",
+      "file": "dora_excerpt.txt"
+    },
+    {
+      "doc_id": "eu-ai-act",
+      "title": "Regulation (EU) 2024/1689 (Artificial Intelligence Act)",
+      "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
+      "file": "eu_ai_act_excerpt.txt"
+    },
+    {
+      "doc_id": "cbi-cpc",
+      "title": "Central Bank of Ireland Consumer Protection Code",
+      "source_url": "https://www.centralbank.ie/regulation/consumer-protection/consumer-protection-code",
+      "file": "cbi_cpc_excerpt.txt"
+    }
+  ]
+}

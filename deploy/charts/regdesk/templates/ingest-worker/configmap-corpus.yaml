@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingest-worker-corpus
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 4 }}
+# Sample regulation corpus (sources.json + the .txt excerpts it references),
+# copied into this chart under files/regulations/ because `helm install`
+# can only read files inside the chart directory -- see data/README.md for
+# the original copies and instructions on swapping in the full documents.
+data:
+  {{- (.Files.Glob "files/regulations/*").AsConfig | nindent 2 }}

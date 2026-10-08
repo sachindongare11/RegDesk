@@ -1,0 +1,73 @@
+# Qdrant (vector DB) for the local kind cluster. Plain Deployment+Service
+# rather than the upstream Helm chart -- Qdrant has no CRDs/operator, so a
+# chart buys nothing here that a dozen lines of YAML don't already cover,
+# and it avoids adding a Helm repo dependency for one object.
+#
+# emptyDir, not a PVC: this is throwaway local dev data (the sample corpus
+# re-ingests from scratch on every `make ingest`/Job run), and emptyDir
+# means `kubectl delete pod` for a quick reset doesn't fight a StatefulSet
+# or leave an orphaned PVC behind. Swap to a PVC before this ever points at
+# real data.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qdrant
+  namespace: regdesk
+  labels:
+    app.kubernetes.io/name: qdrant
+    app.kubernetes.io/part-of: regdesk-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qdrant
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qdrant
+        app.kubernetes.io/part-of: regdesk-platform
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.11.5
+          ports:
+            - name: http
+              containerPort: 6333
+            - name: grpc
+              containerPort: 6334
+          volumeMounts:
+            - name: storage
+              mountPath: /qdrant/storage
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 1000m, memory: 1Gi }
+      volumes:
+        - name: storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+  namespace: regdesk
+  labels:
+    app.kubernetes.io/name: qdrant
+    app.kubernetes.io/part-of: regdesk-platform
+spec:
+  selector:
+    app.kubernetes.io/name: qdrant
+  ports:
+    - name: http
+      port: 6333
+      targetPort: http
+    - name: grpc
+      port: 6334
+      targetPort: grpc

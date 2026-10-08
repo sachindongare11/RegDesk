@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-api-config
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "agent-api" | nindent 4 }}
+data:
+  AGENT_API_HOST: "0.0.0.0"
+  AGENT_API_PORT: {{ .Values.agentApi.port | quote }}
+  {{- range $key, $value := .Values.agentApi.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}

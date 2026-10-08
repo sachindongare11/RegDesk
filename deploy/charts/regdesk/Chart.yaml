@@ -1,0 +1,10 @@
+apiVersion: v2
+name: regdesk
+description: >-
+  RegDesk's three application services (mcp-tools, agent-api, ingest-worker).
+  Platform dependencies (Qdrant, RabbitMQ, Ollama, KEDA) are installed
+  separately -- see deploy/platform/ -- so this chart only owns the
+  services RegDesk itself authors.
+type: application
+version: 0.1.0
+appVersion: "phase-2"

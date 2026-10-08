@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-api
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "agent-api" | nindent 4 }}
+spec:
+  # No top-level `replicas:` -- once the HPA (templates/agent-api/hpa.yaml)
+  # exists it owns this field. Omitting it (rather than setting replicas: 1)
+  # avoids Helm fighting the HPA's decisions back down on every upgrade.
+  selector:
+    matchLabels:
+      {{- include "regdesk.selectorLabels" "agent-api" | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        # regdesk.labels (not just selectorLabels) so this pod is actually
+        # matched by the shared namespace-wide NetworkPolicies
+        # (networkpolicy-default-deny.yaml, networkpolicy-allow-dns.yaml),
+        # which select on app.kubernetes.io/part-of: regdesk.
+        {{- include "regdesk.labels" . | nindent 8 }}
+        {{- include "regdesk.selectorLabels" "agent-api" | nindent 8 }}
+    spec:
+      serviceAccountName: agent-api
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: agent-api
+          image: "{{ .Values.agentApi.image.repository }}:{{ .Values.agentApi.image.tag }}"
+          imagePullPolicy: {{ .Values.agentApi.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.agentApi.port }}
+          envFrom:
+            - configMapRef:
+                name: agent-api-config
+          volumeMounts:
+            {{- include "regdesk.tmpVolumeMount" . | nindent 12 }}
+          # /healthz: process is up. /readyz: mcp-tools is actually
+          # reachable (see app/main.py) -- keep this out of the Service's
+          # endpoints until the question-answering path can really work.
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.agentApi.resources | nindent 12 }}
+      volumes:
+        {{- include "regdesk.tmpVolume" . | nindent 8 }}

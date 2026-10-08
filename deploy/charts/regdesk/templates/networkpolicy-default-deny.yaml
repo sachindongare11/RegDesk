@@ -1,0 +1,33 @@
+# Phase 2's whole point for NetworkPolicy: default-deny + explicit allow-lists,
+# actually *enforced* (see scripts/kind_up.sh's Calico install -- kindnet
+# accepts these objects but never enforces them).
+#
+# Selector is app.kubernetes.io/part-of: regdesk, i.e. this chart's own three
+# workloads (agent-api, mcp-tools, ingest-worker) -- NOT a namespace-wide
+# podSelector: {}. The platform dependencies (Qdrant, the RabbitMQ Cluster
+# Operator's pods, Ollama) are installed separately and this chart doesn't
+# own their pod labels, so it can't (and doesn't try to) select them here.
+# They get their own ingress allow-lists directly from
+# deploy/platform/networkpolicies.yaml instead (egress is intentionally
+# left unrestricted there -- Ollama needs outbound internet access for
+# `ollama pull`, and there's no sensitive egress path worth closing off for
+# any of the three). Don't assume "not matched by this file" means
+# "no NetworkPolicy exists for it anywhere"; check that file too.
+#
+# kubelet-originated liveness/readinessProbe traffic is unaffected by this:
+# Calico doesn't apply a pod's ingress policy to same-node host->pod traffic
+# unless host endpoints are explicitly configured, which this cluster
+# doesn't do.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: regdesk-default-deny
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: regdesk
+  policyTypes:
+    - Ingress
+    - Egress

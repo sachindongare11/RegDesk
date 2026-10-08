@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-tools-config
+  labels:
+    {{- include "regdesk.labels" . | nindent 4 }}
+    {{- include "regdesk.selectorLabels" "mcp-tools" | nindent 4 }}
+data:
+  MCP_TOOLS_HOST: "0.0.0.0"
+  MCP_TOOLS_PORT: {{ .Values.mcpTools.port | quote }}
+  {{- range $key, $value := .Values.mcpTools.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  # FastEmbed's HF cache: see templates/_helpers.tpl's regdesk.tmpVolume.
+  HF_HOME: /tmp/hf-cache
