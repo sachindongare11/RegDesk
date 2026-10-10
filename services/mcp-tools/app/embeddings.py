@@ -20,7 +20,9 @@ _sparse_model: SparseTextEmbedding | None = None
 def _get_sparse_model() -> SparseTextEmbedding:
     global _sparse_model
     if _sparse_model is None:
-        _sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
+        _sparse_model = SparseTextEmbedding(
+            model_name="Qdrant/bm25", cache_dir=settings.fastembed_cache_dir
+        )
     return _sparse_model
 
 

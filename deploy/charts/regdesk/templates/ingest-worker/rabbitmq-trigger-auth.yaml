@@ -31,7 +31,13 @@ metadata:
     {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 4 }}
 type: Opaque
 stringData:
-  host: "amqp://{{ $user }}:{{ $pass }}@{{ .Values.ingestWorker.rabbitmq.host }}:{{ .Values.ingestWorker.rabbitmq.port }}/"
+  # Fully-qualified, not the bare Service name: KEDA's RabbitMQ scaler runs
+  # from the keda-operator pod in the `keda` namespace, so a bare "rabbitmq"
+  # (which only resolves via the regdesk namespace's own DNS search path)
+  # fails there with "no such host" even though it resolves fine for
+  # ingest-worker's own pods (see configmap.yaml, which uses the bare host
+  # because that one *is* same-namespace).
+  host: "amqp://{{ $user }}:{{ $pass }}@{{ .Values.ingestWorker.rabbitmq.host }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.ingestWorker.rabbitmq.port }}/"
 ---
 apiVersion: keda.sh/v1alpha1
 kind: TriggerAuthentication

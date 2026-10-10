@@ -46,8 +46,21 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 10
           resources:
+            # No CPU limit, deliberately. Ollama sizes its inference thread
+            # pool off the host's full logical CPU count, not any cgroup
+            # quota -- so a `limits.cpu` here doesn't just cap throughput
+            # proportionally, it causes CFS-quota throttling against a
+            # thread count that was never adjusted for the smaller quota.
+            # Measured effect: 2 cores -> ~18s/token; 6 cores -> prefill
+            # alone (just the input prompt, before any output) still blew
+            # past a 60s budget. docker-compose's Phase 1 stack sets no CPU
+            # limit at all for this same image, which is why it doesn't hit
+            # this. This is a single-node dev cluster with every other pod
+            # using single-digit millicores, so there's no contention this
+            # limit is actually protecting against -- only requests is kept,
+            # for scheduling.
             requests: { cpu: 500m, memory: 2Gi }
-            limits: { cpu: 2000m, memory: 6Gi }
+            limits: { memory: 6Gi }
       volumes:
         - name: models
           emptyDir: {}

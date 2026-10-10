@@ -11,5 +11,3 @@ data:
   {{- range $key, $value := .Values.mcpTools.env }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}
-  # FastEmbed's HF cache: see templates/_helpers.tpl's regdesk.tmpVolume.
-  HF_HOME: /tmp/hf-cache

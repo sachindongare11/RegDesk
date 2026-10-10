@@ -79,5 +79,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: ingest-worker
+        # KEDA's RabbitMQ scaler (keda-operator, namespace "keda") connects
+        # to RabbitMQ directly to read queue depth -- it isn't a regdesk pod,
+        # so it needs its own namespace-scoped allow rule here.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keda
       ports:
         - port: 5672

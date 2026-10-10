@@ -42,5 +42,11 @@ class Settings(BaseSettings):
     corpus_dir: str = "/data/regulations"
     max_chunk_chars: int = 800
 
+    # FastEmbed's BM25 model cache. Must be an explicit cache_dir (see
+    # embedder.py) -- FastEmbed ignores HF_HOME and otherwise defaults to
+    # tempfile.gettempdir(), which under Kubernetes is a fresh emptyDir on
+    # every pod start, not the path the Dockerfile pre-baked the model into.
+    fastembed_cache_dir: str = "/opt/hf-cache"
+
 
 settings = Settings()
