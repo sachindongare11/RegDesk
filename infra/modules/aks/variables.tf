@@ -35,6 +35,24 @@ variable "system_node_vm_size" {
   default     = "Standard_D2s_v4"
 }
 
+variable "system_node_count" {
+  description = <<-EOT
+    2, not 1: a single Standard_D2s_v4 node reports only ~1.9 vCPU
+    allocatable (kubelet/system reservations eat the rest), and AKS's own
+    baseline system pods (CoreDNS, CSI drivers, konnectivity, Azure
+    Policy, the workload identity webhook, etc.) already use a good
+    chunk of that before cert-manager, the RabbitMQ Cluster Operator, and
+    KEDA are even installed -- measured 98% requested with KEDA's
+    operator pod still Pending, unable to schedule. kind never hit this
+    because its single "node" reports the whole host's CPU, not a real
+    VM's. 2 nodes (4 vCPU total) fixed it with room to spare, still well
+    under the subscription's 10-vCPU regional cap alongside the 4-vCPU
+    Ollama pool.
+  EOT
+  type        = number
+  default     = 2
+}
+
 variable "ollama_node_vm_size" {
   description = "Dedicated node pool for Ollama, tainted so nothing else schedules there (see the node_taints on azurerm_kubernetes_cluster_node_pool.ollama) -- model memory shouldn't be able to starve the rest of the stack, same lesson Phase 2 learned the hard way about CPU."
   type        = string

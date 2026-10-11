@@ -1,0 +1,81 @@
+# Azure variant of ../ollama.yaml -- apply this one INSTEAD OF (not in
+# addition to) the base file when targeting infra/envs/dev's AKS cluster.
+# The only differences from the base file: a nodeSelector + toleration
+# matching infra/modules/aks's dedicated "ollama" node pool (label
+# workload=ollama, taint workload=ollama:NoSchedule) -- without these,
+# the scheduler can't place this pod at all, since every other node is
+# untainted and this one requires the matching toleration.
+#
+# kind has no such pool (everything shares the one node), which is why
+# the base file has neither field -- see this directory's README.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: regdesk
+  labels:
+    app.kubernetes.io/name: ollama
+    app.kubernetes.io/part-of: regdesk-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ollama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama
+        app.kubernetes.io/part-of: regdesk-platform
+    spec:
+      nodeSelector:
+        workload: ollama
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: ollama
+          effect: NoSchedule
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          ports:
+            - name: http
+              containerPort: 11434
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+          readinessProbe:
+            tcpSocket: { port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            # No CPU limit -- see ../ollama.yaml's comment on why
+            # (CFS-quota throttling against Ollama's own thread pool
+            # sizing). Standard_D4s_v4 (infra/modules/aks's ollama pool)
+            # has 4 full vCPUs with nothing else scheduled on it thanks
+            # to the taint above, so this has even more headroom than
+            # the kind cluster did.
+            requests: { cpu: 500m, memory: 2Gi }
+            limits: { memory: 6Gi }
+      volumes:
+        - name: models
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: regdesk
+  labels:
+    app.kubernetes.io/name: ollama
+    app.kubernetes.io/part-of: regdesk-platform
+spec:
+  selector:
+    app.kubernetes.io/name: ollama
+  ports:
+    - name: http
+      port: 11434
+      targetPort: http

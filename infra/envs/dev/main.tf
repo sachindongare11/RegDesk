@@ -98,3 +98,16 @@ resource "azurerm_role_assignment" "deployer_cluster_admin" {
   role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+
+# -- Write access to Key Vault for whoever is running Terraform --
+# ingest_worker_keyvault_secrets_user (above) only grants ingest-worker's
+# identity *read* access ("Key Vault Secrets User") -- nothing can write
+# the RabbitMQ credentials into the vault in the first place without
+# this. Needed for the one-time sync in
+# scripts/sync_rabbitmq_secret_to_keyvault.sh, same deploying-principal
+# scope reasoning as deployer_cluster_admin above.
+resource "azurerm_role_assignment" "deployer_keyvault_secrets_officer" {
+  scope                = module.keyvault.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}

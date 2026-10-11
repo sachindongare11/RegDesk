@@ -3,7 +3,11 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /build
 COPY requirements.txt .
-RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+# --timeout/--retries: this step downloads from PyPI, which is the one
+# part of the build that depends on an external network rather than a
+# local cache -- generous values absorb transient slow/flaky connections
+# instead of failing the whole build on a single read timeout.
+RUN pip wheel --no-cache-dir --timeout 100 --retries 5 --wheel-dir /wheels -r requirements.txt
 
 # --- runtime: slim image, non-root, no build toolchain ---
 FROM python:3.12-slim AS runtime

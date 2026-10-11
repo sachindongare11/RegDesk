@@ -22,6 +22,12 @@ spec:
         # which select on app.kubernetes.io/part-of: regdesk.
         {{- include "regdesk.labels" . | nindent 8 }}
         {{- include "regdesk.selectorLabels" "ingest-worker" | nindent 8 }}
+        {{- if .Values.ingestWorker.azureKeyVault.enabled }}
+        # Tells the azure-wi-webhook admission controller to inject this
+        # pod's federated identity token -- without this label it's just
+        # an ordinary pod, workload identity is opt-in per pod.
+        azure.workload.identity/use: "true"
+        {{- end }}
     spec:
       serviceAccountName: ingest-worker
       securityContext:
@@ -36,25 +42,34 @@ spec:
             - configMapRef:
                 name: ingest-worker-config
           env:
-            # The RabbitMQ Cluster Operator creates this Secret with
-            # discrete `username`/`password` keys (not a ready-made URL);
-            # config.py's model_validator composes rabbitmq_url from these
-            # plus INGEST_WORKER_RABBITMQ_HOST/_PORT from the ConfigMap.
+            # Both keys come from a Secret with discrete `username`/
+            # `password` fields either way; config.py's model_validator
+            # composes rabbitmq_url from these plus
+            # INGEST_WORKER_RABBITMQ_HOST/_PORT from the ConfigMap. Only
+            # the Secret's *name* (and therefore where its data actually
+            # comes from) differs: the RabbitMQ Cluster Operator's own
+            # Secret directly on kind, or the Key Vault-backed Secret the
+            # CSI driver syncs (see secretproviderclass.yaml) on AKS.
             - name: INGEST_WORKER_RABBITMQ_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.ingestWorker.rabbitmq.credentialsSecretName }}
+                  name: {{ ternary "ingest-worker-keyvault-secrets" .Values.ingestWorker.rabbitmq.credentialsSecretName .Values.ingestWorker.azureKeyVault.enabled }}
                   key: username
             - name: INGEST_WORKER_RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.ingestWorker.rabbitmq.credentialsSecretName }}
+                  name: {{ ternary "ingest-worker-keyvault-secrets" .Values.ingestWorker.rabbitmq.credentialsSecretName .Values.ingestWorker.azureKeyVault.enabled }}
                   key: password
           volumeMounts:
             {{- include "regdesk.tmpVolumeMount" . | nindent 12 }}
             - name: corpus
               mountPath: /data/regulations
               readOnly: true
+            {{- if .Values.ingestWorker.azureKeyVault.enabled }}
+            - name: azure-keyvault
+              mountPath: /mnt/secrets-store
+              readOnly: true
+            {{- end }}
           resources:
             {{- toYaml .Values.ingestWorker.resources | nindent 12 }}
       volumes:
@@ -62,3 +77,15 @@ spec:
         - name: corpus
           configMap:
             name: ingest-worker-corpus
+        {{- if .Values.ingestWorker.azureKeyVault.enabled }}
+        # Mounted but never read directly -- its only purpose is
+        # triggering the CSI driver's secretObjects sync into
+        # ingest-worker-keyvault-secrets (see secretproviderclass.yaml),
+        # which is what the env vars above actually consume.
+        - name: azure-keyvault
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: ingest-worker-keyvault
+        {{- end }}
