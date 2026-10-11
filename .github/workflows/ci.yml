@@ -54,6 +54,10 @@ jobs:
 
       - name: tflint
         run: |
+          # --init downloads the azurerm ruleset plugin infra/.tflint.hcl
+          # declares -- a fresh runner has no plugin cache, unlike a
+          # laptop that's already run this once.
+          tflint --init --config "$GITHUB_WORKSPACE/infra/.tflint.hcl"
           for dir in infra/bootstrap infra/envs/dev infra/modules/*/; do
             echo "== $dir =="
             (cd "$dir" && terraform init -backend=false -input=false >/dev/null && tflint --config "$GITHUB_WORKSPACE/infra/.tflint.hcl")
