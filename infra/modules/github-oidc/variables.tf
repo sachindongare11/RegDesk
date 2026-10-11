@@ -4,7 +4,22 @@ variable "display_name" {
 }
 
 variable "github_repo" {
-  description = "owner/repo, e.g. sachindongare11/RegDesk."
+  description = <<-EOT
+    The exact `sub` claim prefix GitHub issues for this repo -- NOT
+    simply "owner/repo". GitHub's "immutable subject" feature (the
+    account-wide default as of this writing: confirm with
+    `gh api repos/<owner>/<repo>/actions/oidc/customization/sub`) bakes
+    the numeric owner and repository IDs into the subject as
+    "owner@owner_id/repo@repo_id", specifically so a repo rename, a
+    delete-then-recreate with the same name, or a transfer can never
+    let a *different* repo satisfy an old federated credential's
+    subject match. Get both IDs from that same `gh api` call's
+    `sub_claim_prefix` field (or GET /repos/{owner}/{repo} for the repo
+    ID and GET /users/{owner} for the owner ID) -- a plain "owner/repo"
+    here will authenticate successfully right up until it's asked to
+    issue a real token, where Azure AD rejects it with
+    AADSTS700213 for not matching anything.
+  EOT
   type        = string
 }
 
