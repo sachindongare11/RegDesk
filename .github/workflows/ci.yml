@@ -54,14 +54,22 @@ jobs:
 
       - name: tflint
         run: |
+          # --init downloads the azurerm ruleset plugin infra/.tflint.hcl
+          # declares -- a fresh runner has no plugin cache, unlike a
+          # laptop that's already run this once.
+          tflint --init --config "$GITHUB_WORKSPACE/infra/.tflint.hcl"
           for dir in infra/bootstrap infra/envs/dev infra/modules/*/; do
             echo "== $dir =="
             (cd "$dir" && terraform init -backend=false -input=false >/dev/null && tflint --config "$GITHUB_WORKSPACE/infra/.tflint.hcl")
           done
 
       - name: checkov
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: infra/
-          framework: terraform
-          quiet: true
+        run: |
+          # Pinned to match what's been validated locally -- the
+          # checkov-action's floating version surfaced a brand-new
+          # CKV2_ check (graph-based, cross-resource) that 3.3.20 never
+          # ran at all, which is exactly the kind of version-drift
+          # surprise pinning everything else in this project (Terraform,
+          # providers, tflint) is meant to avoid.
+          pip install --quiet checkov==3.3.20
+          checkov -d infra/ --framework terraform --compact
