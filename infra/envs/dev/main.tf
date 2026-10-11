@@ -118,11 +118,21 @@ resource "azurerm_role_assignment" "deployer_keyvault_secrets_officer" {
 # and push images on merge to main." Every PR-time check (ruff, pytest,
 # terraform fmt/tflint/checkov) is local static analysis with nothing to
 # authenticate to.
+#
+# github_repo is NOT "owner/repo" -- see the module variable's own
+# comment on why. Confirmed via:
+#   gh api repos/sachindongare11/RegDesk/actions/oidc/customization/sub
+# which returned sub_claim_prefix
+# "repo:sachindongare11@37418535/RegDesk@1410825958" (immutable
+# subjects, this account's default). First deploy attempt failed with
+# AADSTS700213 using the plain "owner/repo" form -- the actual presented
+# subject claim in that failure's azure/login log is what confirmed the
+# real format to use here.
 module "github_actions_oidc" {
   source = "../../modules/github-oidc"
 
   display_name = "regdesk-github-actions"
-  github_repo  = "sachindongare11/RegDesk"
+  github_repo  = "sachindongare11@37418535/RegDesk@1410825958"
 }
 
 resource "azurerm_role_assignment" "github_actions_acr_push" {
