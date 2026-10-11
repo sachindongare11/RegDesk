@@ -1,0 +1,89 @@
+name: Build, scan, push, deploy
+
+# On every merge to main: build each service image, fail the build on a
+# HIGH/CRITICAL Trivy finding, push to ACR tagged with the commit SHA,
+# then commit that tag into deploy/charts/regdesk/values-dev.yaml. Argo
+# CD (not this workflow) is what actually applies anything to AKS --
+# see deploy/argocd/application.yaml -- so from here on, git is the
+# only path to the cluster (Phase 4 spec, point 3).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write # azure/login's OIDC exchange
+  contents: write # committing the new tag back to this repo
+
+jobs:
+  build-scan-push:
+    # Guards against the loop this workflow would otherwise cause: the
+    # commit-tag job below pushes to main, which is itself a push this
+    # workflow triggers on. Skipping runs authored by the bot identity
+    # that commit makes breaks the cycle without needing a [skip ci]
+    # convention.
+    if: github.actor != 'github-actions[bot]'
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [mcp-tools, agent-api, ingest-worker]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: az acr login
+        # az acr login --name wants just the registry name
+        # (acrregdeskdev7hvdty), not the full login server
+        # (acrregdeskdev7hvdty.azurecr.io) -- strip the suffix.
+        run: az acr login --name "${ACR_LOGIN_SERVER%%.*}"
+        env:
+          ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+
+      - name: Build
+        run: |
+          docker build -t "local/${{ matrix.service }}:${{ github.sha }}" services/${{ matrix.service }}
+
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: local/${{ matrix.service }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Tag and push
+        run: |
+          image="${{ vars.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}"
+          docker tag "local/${{ matrix.service }}:${{ github.sha }}" "${image}"
+          docker push "${image}"
+
+  commit-new-tag:
+    name: Update values-dev.yaml
+    needs: build-scan-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set the new image tag for all three services
+        run: |
+          # Every `tag:` line in this file is one of the three services'
+          # image.tag (verified: no other key named "tag" exists here) --
+          # all three get the same value since they're built from the
+          # same commit, so a wholesale replace is correct, not just
+          # convenient.
+          sed -i -E 's/^(\s*tag:\s*).*/\1'"${{ github.sha }}"'/' \
+            deploy/charts/regdesk/values-dev.yaml
+          git diff deploy/charts/regdesk/values-dev.yaml
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add deploy/charts/regdesk/values-dev.yaml
+          git commit -m "Deploy ${{ github.sha }} to dev" -m "Automated: triggered by ${{ github.sha }} on main."
+          git push

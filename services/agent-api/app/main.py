@@ -30,7 +30,7 @@ async def readyz() -> dict:
     """Readiness probe: mcp-tools (and transitively Qdrant) must be reachable."""
     try:
         await mcp_client.search_regulation("readiness check", top_k=1)
-    except Exception as exc:  # noqa: BLE001 - readiness must surface any downstream failure
+    except Exception as exc:
         logger.warning("Readiness check failed: %s", exc)
         raise HTTPException(status_code=503, detail="mcp-tools unavailable") from exc
     return {"status": "ready"}

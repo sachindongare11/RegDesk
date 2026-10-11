@@ -17,10 +17,12 @@ class McpToolClient:
         self._base_url = base_url
 
     async def _call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
-        async with streamable_http_client(self._base_url) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.call_tool(name, arguments)
+        async with (
+            streamable_http_client(self._base_url) as (read, write),
+            ClientSession(read, write) as session,
+        ):
+            await session.initialize()
+            result = await session.call_tool(name, arguments)
 
         if result.is_error:
             [text_block] = [c for c in result.content if c.type == "text"]

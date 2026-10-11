@@ -111,3 +111,22 @@ resource "azurerm_role_assignment" "deployer_keyvault_secrets_officer" {
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+
+# -- Phase 4 point 7: GitHub Actions -> Azure via OIDC, no stored secret --
+# Scoped to pushes on main only (see the module's github_refs default) --
+# the only Phase 4 job that needs Azure access at all is "build, scan,
+# and push images on merge to main." Every PR-time check (ruff, pytest,
+# terraform fmt/tflint/checkov) is local static analysis with nothing to
+# authenticate to.
+module "github_actions_oidc" {
+  source = "../../modules/github-oidc"
+
+  display_name = "regdesk-github-actions"
+  github_repo  = "sachindongare11/RegDesk"
+}
+
+resource "azurerm_role_assignment" "github_actions_acr_push" {
+  scope                = module.acr.id
+  role_definition_name = "AcrPush"
+  principal_id         = module.github_actions_oidc.principal_id
+}

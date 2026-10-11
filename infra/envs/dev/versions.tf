@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.15"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.6"
@@ -24,6 +28,8 @@ terraform {
     storage_account_name = "stregdesktfstateh8qp1l"
   }
 }
+
+provider "azuread" {}
 
 provider "azurerm" {
   features {

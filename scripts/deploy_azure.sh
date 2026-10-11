@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Builds and pushes the three service images to ACR, then
-# helm upgrade --install's the chart against infra/envs/dev's AKS
-# cluster with values-azure.yaml plus the handful of values only known
-# after `terraform apply` (ACR login server, Key Vault name/tenant,
-# ingest-worker's workload identity client ID) pulled live from
-# `terraform output`.
+# Manual/local equivalent of what .github/workflows/deploy.yml does on
+# every merge to main: build and push the three service images to ACR,
+# then helm upgrade --install with values-dev.yaml.
+#
+# Since Phase 4, values-dev.yaml carries the ACR repository paths, Key
+# Vault name/tenant, and ingest-worker's client ID as plain static
+# values (committed to git, since Argo CD's sync is fully declarative
+# and can't take --set flags) -- this script only needs to override the
+# image tag for an ad-hoc local build, matching whatever the CI workflow
+# would otherwise write there.
 #
 # Run scripts/platform_up_azure.sh first -- this assumes Qdrant,
 # RabbitMQ, Ollama, and KEDA already exist, same dependency order as
@@ -19,9 +23,6 @@ SERVICES=(mcp-tools agent-api ingest-worker)
 echo "Reading infra/envs/dev's Terraform outputs..."
 cd "${REPO_ROOT}/infra/envs/dev"
 ACR_LOGIN_SERVER="$(terraform output -raw acr_login_server)"
-KEY_VAULT_NAME="$(terraform output -raw key_vault_name)"
-INGEST_WORKER_CLIENT_ID="$(terraform output -raw ingest_worker_identity_client_id)"
-TENANT_ID="$(az account show --query tenantId -o tsv)"
 cd "${REPO_ROOT}"
 
 echo "Logging into ACR '${ACR_LOGIN_SERVER}'..."
@@ -40,18 +41,12 @@ for svc in "${SERVICES[@]}"; do
   docker buildx build --platform linux/amd64 --push -t "${image}" "${REPO_ROOT}/services/${svc}"
 done
 
-echo "Deploying the chart..."
+echo "Deploying the chart with tag '${TAG}'..."
 helm upgrade --install regdesk "${REPO_ROOT}/deploy/charts/regdesk" \
   --namespace regdesk --create-namespace \
-  -f "${REPO_ROOT}/deploy/charts/regdesk/values-azure.yaml" \
-  --set mcpTools.image.repository="${ACR_LOGIN_SERVER}/mcp-tools" \
+  -f "${REPO_ROOT}/deploy/charts/regdesk/values-dev.yaml" \
   --set mcpTools.image.tag="${TAG}" \
-  --set agentApi.image.repository="${ACR_LOGIN_SERVER}/agent-api" \
   --set agentApi.image.tag="${TAG}" \
-  --set ingestWorker.image.repository="${ACR_LOGIN_SERVER}/ingest-worker" \
-  --set ingestWorker.image.tag="${TAG}" \
-  --set ingestWorker.azureKeyVault.vaultName="${KEY_VAULT_NAME}" \
-  --set ingestWorker.azureKeyVault.tenantId="${TENANT_ID}" \
-  --set ingestWorker.azureKeyVault.clientId="${INGEST_WORKER_CLIENT_ID}"
+  --set ingestWorker.image.tag="${TAG}"
 
 echo "Done. 'helm -n regdesk list' to check the release; 'kubectl -n regdesk get pods' for pod status."

@@ -13,9 +13,9 @@ from mcp.server.mcpserver import MCPServer
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from app import tools
 from app.config import settings
 from app.qdrant_store import QdrantStore
-from app import tools
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mcp-tools")

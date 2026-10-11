@@ -1,0 +1,39 @@
+# Argo CD Application for the regdesk Helm chart. Applied once, by
+# hand, after Argo CD itself is installed (see this directory's README)
+# -- from here on, every change to deploy/charts/regdesk (including the
+# image.tag edits .github/workflows/deploy.yml commits on every merge
+# to main) reaches the cluster through Argo CD's sync, not kubectl.
+#
+# Deliberately scoped to the Helm chart only, not all of deploy/ --
+# deploy/platform/ (Qdrant, RabbitMQ, Ollama, the NetworkPolicies) stays
+# imperatively managed via scripts/platform_up_azure.sh for now. Those
+# are upstream operators/raw manifests this project depends on but
+# doesn't own; bringing them under GitOps too is a reasonable next step,
+# just not this phase's scope (the done-check is specifically about
+# agent-api's self-heal).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: regdesk
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/sachindongare11/RegDesk.git
+    targetRevision: main
+    path: deploy/charts/regdesk
+    helm:
+      valueFiles:
+        - values-dev.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: regdesk
+
+  syncPolicy:
+    automated:
+      prune: true # delete resources Git no longer has
+      selfHeal: true # revert any manual kubectl change back to Git's state
+    syncOptions:
+      - CreateNamespace=true
