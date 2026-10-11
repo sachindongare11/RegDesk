@@ -28,7 +28,7 @@
 mcpTools:
   image:
     repository: acrregdeskdev7hvdty.azurecr.io/mcp-tools
-    tag: latest
+    tag: 98e3ae780948cf3b78e8c2959f1196a22140f535
     # A real registry, not kind's local-only trick -- IfNotPresent still
     # avoids a pull on every pod restart once the image's been fetched
     # once per node.
@@ -37,13 +37,13 @@ mcpTools:
 agentApi:
   image:
     repository: acrregdeskdev7hvdty.azurecr.io/agent-api
-    tag: latest
+    tag: 98e3ae780948cf3b78e8c2959f1196a22140f535
     pullPolicy: IfNotPresent
 
 ingestWorker:
   image:
     repository: acrregdeskdev7hvdty.azurecr.io/ingest-worker
-    tag: latest
+    tag: 98e3ae780948cf3b78e8c2959f1196a22140f535
     pullPolicy: IfNotPresent
   azureKeyVault:
     enabled: true
