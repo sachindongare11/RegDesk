@@ -22,7 +22,7 @@ graph = build_graph(mcp_client, llm_client)
 @app.get("/healthz")
 async def healthz() -> dict:
     """Liveness probe: the process is up and the event loop is responsive."""
-    return {"status": "ok"}
+    return {"status": "ok", "phase": "4"}
 
 
 @app.get("/readyz")
