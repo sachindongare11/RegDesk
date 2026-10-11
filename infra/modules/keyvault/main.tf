@@ -28,5 +28,7 @@ resource "azurerm_key_vault" "this" {
   # no fixed IP.
   # checkov:skip=CKV_AZURE_109: firewall rules (network_acls) would be the
   # mechanism for scoping that access down; left open for the same reason.
+  # checkov:skip=CKV2_AZURE_32: same no-private-endpoint-set-up-yet
+  # tradeoff as the two skips above, just the graph-check version of it.
   public_network_access_enabled = true
 }

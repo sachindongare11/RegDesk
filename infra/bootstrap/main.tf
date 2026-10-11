@@ -53,18 +53,51 @@ resource "azurerm_storage_account" "state" {
   # this directory) -- both of these matter even for a dev subscription.
   blob_properties {
     versioning_enabled = true # recover from a bad `terraform apply` overwriting state
+    # Free, zero-downside: lets a wrongly-deleted state blob be
+    # recovered within the window instead of being gone immediately.
+    delete_retention_policy {
+      days = 7
+    }
   }
   # checkov:skip=CKV_AZURE_59: dev convenience -- `terraform apply` runs
   # from a laptop with no fixed IP/VPN to this subscription yet. See
   # README.md's tradeoff section for what a private-endpoint setup would
   # look like instead.
+  # checkov:skip=CKV2_AZURE_33: same tradeoff as CKV_AZURE_59 above --
+  # no private endpoint set up for this dev subscription yet.
   public_network_access_enabled = true
+
+  # checkov:skip=CKV2_AZURE_41: this account is never accessed via SAS
+  # tokens at all (Terraform's backend and every manual `az` command use
+  # Azure AD auth or the account key directly, never a SAS) -- an
+  # expiration policy for a mechanism nothing here uses doesn't add
+  # protection.
+  # checkov:skip=CKV2_AZURE_40: disabling shared-key auth
+  # (shared_access_key_enabled = false) would require the Terraform
+  # backend to switch to use_azuread_auth = true *and* every principal
+  # that runs `terraform init`/`plan`/`apply` against this backend to
+  # first have Storage Blob Data Contributor granted explicitly --
+  # Azure RBAC's control-plane roles (Owner/Contributor) don't
+  # automatically carry that data-plane permission. Worth doing, but as
+  # a deliberate, sequenced change (grant the role, verify AAD auth
+  # works, *then* disable shared key) -- not a one-line flip to make
+  # under a lint gate, where getting the order wrong risks locking out
+  # state access entirely.
+  # checkov:skip=CKV2_AZURE_1: customer-managed-key encryption adds a Key
+  # Vault dependency for marginal benefit over the platform-managed
+  # encryption already active by default -- same tradeoff as
+  # infra/modules/aks's CKV_AZURE_117 skip.
 }
 
 resource "azurerm_storage_container" "tfstate" {
   name                  = "tfstate"
   storage_account_id    = azurerm_storage_account.state.id
   container_access_type = "private"
+  # checkov:skip=CKV2_AZURE_21: blob read-request logging needs either
+  # deprecated classic storage analytics logging or a full Azure Monitor
+  # diagnostic setting (itself needing a Log Analytics workspace or
+  # another storage destination) -- same "that's Phase 5's observability
+  # work, not this one's" reasoning as infra/modules/aks's CKV_AZURE_4 skip.
 }
 
 resource "azurerm_storage_account_queue_properties" "state" {
