@@ -60,7 +60,7 @@ resource "azurerm_kubernetes_cluster" "this" {
   default_node_pool {
     name       = "system"
     vm_size    = var.system_node_vm_size
-    node_count = 1
+    node_count = var.system_node_count
     zones      = var.availability_zones
     # checkov:skip=CKV_AZURE_168: default (30) is already well above this
     # cluster's actual pod count; raised anyway since it costs nothing.

@@ -66,7 +66,25 @@ ingestWorker:
     port: 5672
     # Name of the Secret the RabbitMQ Cluster Operator creates for the
     # RabbitmqCluster named "rabbitmq" (see deploy/platform/README.md).
+    # Read directly when azureKeyVault.enabled is false (kind); ignored
+    # in favor of the CSI-synced Secret (see secretproviderclass.yaml)
+    # when it's true.
     credentialsSecretName: rabbitmq-default-user
+  # Disabled by default (kind has no Key Vault, no CSI driver, no
+  # workload identity). On AKS (see deploy/platform/azure/README.md and
+  # infra/envs/dev), set enabled: true plus the four fields below so
+  # ingest-worker reads its RabbitMQ credentials straight from Key Vault
+  # instead of the RabbitMQ Operator's Secret directly -- see
+  # templates/ingest-worker/secretproviderclass.yaml for how.
+  azureKeyVault:
+    enabled: false
+    vaultName: ""
+    tenantId: ""
+    # The ingest-worker workload identity's client ID -- infra/envs/dev's
+    # ingest_worker_identity_client_id output.
+    clientId: ""
+    usernameSecretName: rabbitmq-username
+    passwordSecretName: rabbitmq-password
   scaledObject:
     queueName: regdesk.ingest
     queueLength: 5 # target messages-per-replica; queue depth 15 -> ~3 replicas
