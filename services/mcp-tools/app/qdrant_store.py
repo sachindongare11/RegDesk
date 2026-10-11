@@ -7,8 +7,8 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
     FieldCondition,
     Filter,
-    FusionQuery,
     Fusion,
+    FusionQuery,
     MatchValue,
     Prefetch,
 )

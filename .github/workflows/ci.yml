@@ -1,0 +1,67 @@
+name: CI
+
+# Every PR check here is local static analysis -- none of these jobs
+# need Azure credentials, which is why they're not using azure/login or
+# the OIDC federation infra/modules/github-oidc sets up (that's scoped
+# to pushes on main only, for the build-and-push workflow).
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: ${{ matrix.service }} (ruff + pytest)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [agent-api, mcp-tools, ingest-worker]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - run: ruff check .
+
+      - run: python -m pytest -q
+
+  terraform:
+    name: terraform (fmt, tflint, checkov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.5"
+          terraform_wrapper: false
+
+      - run: terraform fmt -check -recursive infra/
+
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.64.0
+
+      - name: tflint
+        run: |
+          for dir in infra/bootstrap infra/envs/dev infra/modules/*/; do
+            echo "== $dir =="
+            (cd "$dir" && terraform init -backend=false -input=false >/dev/null && tflint --config "$GITHUB_WORKSPACE/infra/.tflint.hcl")
+          done
+
+      - name: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: infra/
+          framework: terraform
+          quiet: true

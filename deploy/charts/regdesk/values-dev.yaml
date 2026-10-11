@@ -1,0 +1,52 @@
+# Overrides for deploying this chart to infra/envs/dev's AKS cluster
+# instead of kind.
+#
+# `image.tag` on all three services is the one thing Phase 4's
+# build-and-push workflow (.github/workflows/deploy.yml) edits on every
+# merge to main -- it writes the new git SHA here and commits straight
+# to this file, which is what makes "git is the only way anything
+# reaches the cluster" (Phase 4 spec, point 3) literally true: Argo CD
+# picks up the change from here, not from anything the workflow talks to
+# directly. Keep that one line's format (`tag: <value>`) stable, or the
+# workflow's sed/yq replace needs updating to match.
+#
+# The Key Vault name / tenant ID / ingest-worker client ID below are
+# also only known after `terraform apply` -- they're filled in here
+# (rather than passed with --set, the way scripts/deploy_azure.sh used
+# to do it before Argo CD existed) because Argo CD's sync is fully
+# declarative: it applies whatever's in git with no imperative flags, so
+# anything the chart needs has to live in a values file. Re-run
+# `terraform output` in infra/envs/dev and update these by hand if this
+# environment is ever rebuilt from scratch (new resource suffixes mean
+# new values here).
+#
+# Everything not mentioned here (resource requests/limits, HPA/KEDA
+# thresholds, NetworkPolicies, security contexts) is unchanged from
+# values.yaml -- this cluster is sized the same as kind on purpose, same
+# dev-cost reasoning.
+
+mcpTools:
+  image:
+    repository: acrregdeskdev7hvdty.azurecr.io/mcp-tools
+    tag: latest
+    # A real registry, not kind's local-only trick -- IfNotPresent still
+    # avoids a pull on every pod restart once the image's been fetched
+    # once per node.
+    pullPolicy: IfNotPresent
+
+agentApi:
+  image:
+    repository: acrregdeskdev7hvdty.azurecr.io/agent-api
+    tag: latest
+    pullPolicy: IfNotPresent
+
+ingestWorker:
+  image:
+    repository: acrregdeskdev7hvdty.azurecr.io/ingest-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  azureKeyVault:
+    enabled: true
+    vaultName: kv-regdesk-dev-7hvdty
+    tenantId: "4020a842-9adc-4dcd-990d-25d6473c3b53"
+    clientId: "4cd73d80-23e6-4d10-83e2-c8dc8c368c13"
